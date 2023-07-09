@@ -1,8 +1,4 @@
-model Post {
-  id        Int      @default(autoincrement()) @id
-  title     String
-  content   String
-}generator client {
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -10,18 +6,36 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
 model Address {
-  id        Int      @default(autoincrement()) @id
-  street    String
-  city      String
-  country   String
-  user      User?
+  id      Int    @id @default(autoincrement())
+  street  String
+  city    String
+  country String
+  user    User?
 }
+
 model User {
-  id            Int         @default(autoincrement()) @id
-  email         String      @unique
-  name          String
-  password      String
-  address       Address?     @relation(fields: [addressId], references: [id])
-  addressId     Int? @unique
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  name      String
+  password  String
+  address   Address? @relation(fields: [addressId], references: [id])
+  addressId Int?     @unique
+  Post      Post[]
+}
+
+model Post {
+  id         Int        @id @default(autoincrement())
+  title      String
+  content    String
+  author     User       @relation(fields: [authorId], references: [id])
+  authorId   Int
+  categories Category[]
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String
+  posts Post[]
 }

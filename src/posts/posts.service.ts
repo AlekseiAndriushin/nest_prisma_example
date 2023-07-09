@@ -2,9 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreatePostDto } from './dto/createPost.dto';
 import { UpdatePostDto } from './dto/updatePost.dto';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 import { PrismaError } from '../utils/prismaError';
 import { PostNotFoundException } from './exceptions/postNotFound.exception';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { User } from '@prisma/client';
 
 @Injectable()
 export class PostsService {
@@ -26,9 +27,27 @@ export class PostsService {
     return post;
   }
 
-  async createPost(post: CreatePostDto) {
+  async createPost(post: CreatePostDto, user: User) {
+    const categories = post.categoryIds?.map((category) => ({
+      id: category,
+    }));
+
     return this.prismaService.post.create({
-      data: post,
+      data: {
+        title: post.title,
+        content: post.content,
+        author: {
+          connect: {
+            id: user.id,
+          },
+        },
+        categories: {
+          connect: categories,
+        },
+      },
+      include: {
+        categories: true,
+      },
     });
   }
 

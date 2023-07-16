@@ -1,11 +1,17 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service';
-import RegisterDto from './dto/register.dto';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import TokenPayload from './tokenPayload.interface';
-import PostgresErrorCode from '../utils/postgresErrorCode.enum';
+import { UserNotFoundException } from '../users/exceptions/userNotFound.exception';
+import { RegisterDto } from './dto/register.dto';
+import { PrismaError } from '../utils/prismaError';
 
 @Injectable()
 export class AuthenticationService {
@@ -25,7 +31,7 @@ export class AuthenticationService {
       createdUser.password = undefined;
       return createdUser;
     } catch (error) {
-      if (error?.code === PostgresErrorCode.UniqueViolation) {
+      if (error?.code === PrismaError.UniqueConstraintFailed) {
         throw new HttpException(
           'User with that email already exists',
           HttpStatus.BAD_REQUEST,
@@ -56,10 +62,10 @@ export class AuthenticationService {
       await this.verifyPassword(plainTextPassword, user.password);
       return user;
     } catch (error) {
-      throw new HttpException(
-        'Wrong credentials provided',
-        HttpStatus.BAD_REQUEST,
-      );
+      if (error instanceof UserNotFoundException) {
+        throw new BadRequestException();
+      }
+      throw error;
     }
   }
 
@@ -72,10 +78,7 @@ export class AuthenticationService {
       hashedPassword,
     );
     if (!isPasswordMatching) {
-      throw new HttpException(
-        'Wrong credentials provided',
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new BadRequestException('Wrong credentials provided');
     }
   }
 }
